@@ -8,29 +8,34 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-$user_id = $_SESSION['user_id'];
-
-// Start transaction
-mysqli_begin_transaction($conn);
-
-try {
-    // Update all pending orders to cancelled status
-    $sql = "UPDATE orders SET order_status = 'cancelled' WHERE user_id = ? AND order_status = 'pending'";
-    $stmt = mysqli_prepare($conn, $sql);
-    mysqli_stmt_bind_param($stmt, "i", $user_id);
-    mysqli_stmt_execute($stmt);
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $user_id = $_SESSION['user_id'];
     
-    // Commit transaction
-    mysqli_commit($conn);
-    
-    $_SESSION['success'] = "All pending orders have been cancelled successfully.";
-} catch (Exception $e) {
-    // Rollback transaction on error
-    mysqli_rollback($conn);
-    $_SESSION['error'] = "An error occurred while cancelling orders. Please try again.";
+    try {
+        // Start transaction
+        $conn->begin_transaction();
+        
+        // Update all pending orders to cancelled status
+        $stmt = $conn->prepare("
+            UPDATE orders 
+            SET order_status = 'cancelled', 
+                updated_at = CURRENT_TIMESTAMP 
+            WHERE user_id = ? AND order_status = 'pending'
+        ");
+        $stmt->bind_param("i", $user_id);
+        
+        if ($stmt->execute()) {
+            $conn->commit();
+            $_SESSION['success'] = "All pending orders have been cancelled successfully.";
+        } else {
+            throw new Exception("Error cancelling orders.");
+        }
+    } catch (Exception $e) {
+        $conn->rollback();
+        $_SESSION['error'] = "An error occurred while cancelling orders. Please try again.";
+    }
 }
 
-// Redirect back to account page
-header('Location: account.php');
+header('Location: account.php#orders');
 exit();
 ?> 

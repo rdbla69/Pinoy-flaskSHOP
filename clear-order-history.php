@@ -8,37 +8,38 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-$user_id = $_SESSION['user_id'];
-
-// Start transaction
-mysqli_begin_transaction($conn);
-
-try {
-    // First delete all order items
-    $sql = "DELETE oi FROM order_items oi 
-            INNER JOIN orders o ON oi.order_id = o.id 
-            WHERE o.user_id = ?";
-    $stmt = mysqli_prepare($conn, $sql);
-    mysqli_stmt_bind_param($stmt, "i", $user_id);
-    mysqli_stmt_execute($stmt);
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $user_id = $_SESSION['user_id'];
     
-    // Then delete all orders
-    $sql = "DELETE FROM orders WHERE user_id = ?";
-    $stmt = mysqli_prepare($conn, $sql);
-    mysqli_stmt_bind_param($stmt, "i", $user_id);
-    mysqli_stmt_execute($stmt);
-    
-    // Commit transaction
-    mysqli_commit($conn);
-    
-    $_SESSION['success'] = "Your order history has been cleared successfully.";
-} catch (Exception $e) {
-    // Rollback transaction on error
-    mysqli_rollback($conn);
-    $_SESSION['error'] = "An error occurred while clearing order history. Please try again.";
+    try {
+        // Start transaction
+        $conn->begin_transaction();
+        
+        // First, delete all order items
+        $stmt = $conn->prepare("
+            DELETE oi FROM order_items oi
+            INNER JOIN orders o ON oi.order_id = o.id
+            WHERE o.user_id = ?
+        ");
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        
+        // Then, delete all orders
+        $stmt = $conn->prepare("DELETE FROM orders WHERE user_id = ?");
+        $stmt->bind_param("i", $user_id);
+        
+        if ($stmt->execute()) {
+            $conn->commit();
+            $_SESSION['success'] = "Order history has been cleared successfully.";
+        } else {
+            throw new Exception("Error clearing order history.");
+        }
+    } catch (Exception $e) {
+        $conn->rollback();
+        $_SESSION['error'] = "An error occurred while clearing order history. Please try again.";
+    }
 }
 
-// Redirect back to account page
-header('Location: account.php');
+header('Location: account.php#orders');
 exit();
 ?> 

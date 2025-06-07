@@ -24,6 +24,20 @@ mysqli_stmt_bind_param($stmt, "i", $user_id);
 mysqli_stmt_execute($stmt);
 $user = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
 
+// Get user's default address
+$sql = "SELECT * FROM addresses WHERE user_id = ? AND is_default = 1";
+$stmt = mysqli_prepare($conn, $sql);
+mysqli_stmt_bind_param($stmt, "i", $user_id);
+mysqli_stmt_execute($stmt);
+$default_address = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+
+// Get all user's addresses
+$sql = "SELECT * FROM addresses WHERE user_id = ? ORDER BY is_default DESC";
+$stmt = mysqli_prepare($conn, $sql);
+mysqli_stmt_bind_param($stmt, "i", $user_id);
+mysqli_stmt_execute($stmt);
+$addresses = mysqli_stmt_get_result($stmt)->fetch_all(MYSQLI_ASSOC);
+
 // Get cart items with product details
 $cart_items = array();
 $subtotal = 0;
@@ -79,7 +93,7 @@ if (!empty($_SESSION['cart'])) {
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $shipping_address = trim($_POST['shipping_address']);
+    $address_id = (int)$_POST['shipping_address'];
     $payment_method = $_POST['payment_method'];
     $card_number = isset($_POST['card_number']) ? trim($_POST['card_number']) : '';
     $card_expiry = isset($_POST['card_expiry']) ? trim($_POST['card_expiry']) : '';
@@ -88,8 +102,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Validate input
     $errors = array();
     
-    if (empty($shipping_address)) {
-        $errors[] = "Shipping address is required.";
+    if (empty($address_id)) {
+        $errors[] = "Please select a shipping address.";
+    } else {
+        // Verify that the address belongs to the user
+        $stmt = $conn->prepare("SELECT id FROM addresses WHERE id = ? AND user_id = ?");
+        $stmt->bind_param("ii", $address_id, $user_id);
+        $stmt->execute();
+        if ($stmt->get_result()->num_rows === 0) {
+            $errors[] = "Invalid shipping address selected.";
+        }
     }
     
     if (empty($payment_method)) {
@@ -109,47 +131,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     if (empty($errors)) {
-        // Start transaction
-        mysqli_begin_transaction($conn);
-        
         try {
+            // Start transaction
+            $conn->begin_transaction();
+            
+            // Get the selected address
+            $stmt = $conn->prepare("SELECT * FROM addresses WHERE id = ? AND user_id = ?");
+            $stmt->bind_param("ii", $address_id, $user_id);
+            $stmt->execute();
+            $address = $stmt->get_result()->fetch_assoc();
+            
             // Create order
-            $sql = "INSERT INTO orders (user_id, total_amount, shipping_address, payment_method, order_status) 
-                    VALUES (?, ?, ?, ?, 'pending')";
-            $stmt = mysqli_prepare($conn, $sql);
-            mysqli_stmt_bind_param($stmt, "idss", $user_id, $total, $shipping_address, $payment_method);
-            mysqli_stmt_execute($stmt);
-            $order_id = mysqli_insert_id($conn);
+            $stmt = $conn->prepare("
+                INSERT INTO orders (user_id, total_amount, shipping_address, payment_method, order_status)
+                VALUES (?, ?, ?, ?, 'pending')
+            ");
+            
+            $shipping_address = sprintf(
+                "%s, %s, %s, %s %s",
+                $address['street_address'],
+                $address['barangay'],
+                $address['city'],
+                $address['state'],
+                $address['postal_code']
+            );
+            
+            $stmt->bind_param("idss", $user_id, $total, $shipping_address, $payment_method);
+            $stmt->execute();
+            $order_id = $conn->insert_id;
             
             // Add order items
-            $sql = "INSERT INTO order_items (order_id, product_id, quantity, price, customization) 
-                    VALUES (?, ?, ?, ?, ?)";
-            $stmt = mysqli_prepare($conn, $sql);
+            $stmt = $conn->prepare("
+                INSERT INTO order_items (order_id, product_id, quantity, price)
+                VALUES (?, ?, ?, ?)
+            ");
             
             foreach ($cart_items as $item) {
-                $customization_json = json_encode($item['customizations']);
-                mysqli_stmt_bind_param($stmt, "iiids", 
-                    $order_id, 
-                    $item['id'], 
-                    $item['quantity'], 
-                    $item['price'],
-                    $customization_json
-                );
-                mysqli_stmt_execute($stmt);
+                $stmt->bind_param("iiid", $order_id, $item['id'], $item['quantity'], $item['price']);
+                $stmt->execute();
             }
             
-            // Commit transaction
-            mysqli_commit($conn);
-            
             // Clear cart
-            $_SESSION['cart'] = array();
+            unset($_SESSION['cart']);
             
-            // Redirect to orders page after successful order
-            header("Location: orders.php");
+            $conn->commit();
+            
+            // Redirect to order confirmation
+            header("Location: order-confirmation.php?order_id=" . $order_id);
             exit();
-            
         } catch (Exception $e) {
-            mysqli_rollback($conn);
+            $conn->rollback();
             $errors[] = "An error occurred while processing your order. Please try again.";
         }
     }
@@ -252,7 +283,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post" id="checkoutForm">
                             <div class="mb-3">
                                 <label for="shipping_address" class="form-label">Shipping Address</label>
-                                <textarea class="form-control" id="shipping_address" name="shipping_address" rows="3" required><?php echo isset($_POST['shipping_address']) ? htmlspecialchars($_POST['shipping_address']) : ''; ?></textarea>
+                                <select class="form-select" id="shipping_address" name="shipping_address" required>
+                                    <?php if (!empty($addresses)): ?>
+                                        <?php foreach ($addresses as $address): ?>
+                                            <option value="<?php echo htmlspecialchars($address['id']); ?>" <?php echo $address['is_default'] ? 'selected' : ''; ?>>
+                                                <?php echo htmlspecialchars($address['address_name']); ?> - 
+                                                <?php echo htmlspecialchars($address['street_address']); ?>, 
+                                                <?php echo htmlspecialchars($address['barangay']); ?>, 
+                                                <?php echo htmlspecialchars($address['city']); ?>, 
+                                                <?php echo htmlspecialchars($address['state']); ?> 
+                                                <?php echo htmlspecialchars($address['postal_code']); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <option value="">No addresses found</option>
+                                    <?php endif; ?>
+                                </select>
+                                <div class="mt-2">
+                                    <a href="account.php#addresses" class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-plus me-1"></i>Add New Address
+                                    </a>
+                                </div>
                             </div>
 
                             <div class="row">

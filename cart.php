@@ -118,24 +118,79 @@ if (!empty($_SESSION['cart'])) {
 
         .cart-empty {
             text-align: center;
-            padding: 60px 0;
+            padding: 80px 0;
+            background: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            margin: 2rem 0;
         }
 
         .cart-empty i {
-            font-size: 4rem;
+            font-size: 5rem;
             color: #e9ecef;
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
         }
 
         .cart-empty h3 {
-            font-size: 1.5rem;
+            font-size: 2rem;
+            font-weight: 700;
             color: #1a1a1a;
             margin-bottom: 1rem;
         }
 
         .cart-empty p {
             color: #666;
-            margin-bottom: 2rem;
+            font-size: 1.1rem;
+            margin-bottom: 2.5rem;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .empty-cart-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .empty-cart-btn {
+            padding: 8px 20px;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+        }
+
+        .empty-cart-btn-primary {
+            background: #000;
+            color: #fff;
+            border: 1px solid #000;
+        }
+
+        .empty-cart-btn-primary:hover {
+            background: #333;
+            border-color: #333;
+            transform: translateY(-1px);
+        }
+
+        .empty-cart-btn-outline {
+            background: transparent;
+            color: #000;
+            border: 1px solid #000;
+        }
+
+        .empty-cart-btn-outline:hover {
+            background: #f8f9fa;
+            transform: translateY(-1px);
+        }
+
+        .empty-cart-btn i {
+            font-size: 0.9rem;
         }
 
         .cart-item {
@@ -408,11 +463,18 @@ if (!empty($_SESSION['cart'])) {
             <?php if (empty($cart_items)): ?>
                 <div class="cart-empty">
                     <i class="fas fa-shopping-cart"></i>
-                    <h3>Your cart is empty</h3>
-                    <p>Looks like you haven't added any items to your cart yet.</p>
-                    <a href="products.php" class="continue-shopping">
-                        <i class="fas fa-arrow-left me-2"></i>Continue Shopping
-                    </a>
+                    <h3>Your Cart is Empty</h3>
+                    <p>Looks like you haven't added any items to your cart yet. Start shopping to fill it up with amazing products!</p>
+                    <div class="empty-cart-buttons">
+                        <a href="products.php" class="empty-cart-btn empty-cart-btn-primary">
+                            <i class="fas fa-shopping-bag"></i>
+                            Shop Now
+                        </a>
+                        <a href="index.php" class="empty-cart-btn empty-cart-btn-outline">
+                            <i class="fas fa-home"></i>
+                            Home
+                        </a>
+                    </div>
                 </div>
             <?php else: ?>
                 <div class="row">
@@ -607,4 +669,4 @@ if (!empty($_SESSION['cart'])) {
         });
     </script>
 </body>
-</html> </html> 
+</html> 

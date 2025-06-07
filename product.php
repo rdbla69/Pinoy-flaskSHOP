@@ -152,7 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_to_cart'])) {
                 <p class="text-muted mb-3">Category: <?php echo htmlspecialchars($product['category']); ?></p>
                 
                 <div class="mb-4">
-                    <h2 class="text-primary mb-0">$<?php echo number_format($product['price'], 2); ?></h2>
+                    <h2 class="text-primary mb-0">₱<?php echo number_format($product['price'], 2); ?></h2>
                     <?php if ($product['stock'] > 0): ?>
                         <span class="badge bg-success">In Stock</span>
                     <?php else: ?>
@@ -241,7 +241,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_to_cart'])) {
                                 <div class="card-body">
                                     <h5 class="card-title"><?php echo htmlspecialchars($related['name']); ?></h5>
                                     <p class="card-text text-muted"><?php echo htmlspecialchars($related['description']); ?></p>
-                                    <p class="card-text"><strong>$<?php echo number_format($related['price'], 2); ?></strong></p>
+                                    <p class="card-text"><strong>₱<?php echo number_format($related['price'], 2); ?></strong></p>
                                     <div class="d-grid">
                                         <a href="product.php?id=<?php echo $related['id']; ?>" class="btn btn-primary">View Details</a>
                                     </div>

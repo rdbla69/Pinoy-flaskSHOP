@@ -248,33 +248,49 @@ while ($row = mysqli_fetch_assoc($categories_result)) {
     </div>
 
     <!-- Footer -->
-    <footer class="bg-dark text-light py-4">
+    <footer class="footer mt-auto py-3 bg-dark text-white">
         <div class="container">
             <div class="row">
                 <div class="col-md-4">
                     <h5>About Us</h5>
-                    <p>Your trusted source for custom water bottles.</p>
+                    <p>Your trusted source for quality products and excellent service.</p>
                 </div>
                 <div class="col-md-4">
                     <h5>Quick Links</h5>
                     <ul class="list-unstyled">
-                        <li><a href="about.php" class="text-light">About Us</a></li>
-                        <li><a href="contact.php" class="text-light">Contact</a></li>
-                        <li><a href="faq.php" class="text-light">FAQ</a></li>
+                        <li><a href="index.php" class="text-white">Home</a></li>
+                        <li><a href="shop.php" class="text-white">Shop</a></li>
+                        <li><a href="about.php" class="text-white">About</a></li>
+                        <li><a href="contact.php" class="text-white">Contact</a></li>
                     </ul>
                 </div>
                 <div class="col-md-4">
-                    <h5>Contact Us</h5>
+                    <h5>Contact Info</h5>
                     <ul class="list-unstyled">
-                        <li><i class="fas fa-phone"></i> (123) 456-7890</li>
-                        <li><i class="fas fa-envelope"></i> info@pinoyflask.com</li>
+                        <li><i class="fas fa-phone me-2"></i> +63 123 456 7890</li>
+                        <li><i class="fas fa-envelope me-2"></i> info@pinoyflaskshop.com</li>
+                        <li><i class="fas fa-map-marker-alt me-2"></i> Manila, Philippines</li>
                     </ul>
+                </div>
+            </div>
+            <hr class="my-4">
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-0">&copy; 2024 Pinoy Flask Shop. All rights reserved.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <a href="#" class="text-white me-3"><i class="fab fa-facebook"></i></a>
+                    <a href="#" class="text-white me-3"><i class="fab fa-twitter"></i></a>
+                    <a href="#" class="text-white me-3"><i class="fab fa-instagram"></i></a>
                 </div>
             </div>
         </div>
     </footer>
 
+    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Font Awesome -->
+    <script src="https://kit.fontawesome.com/a076d05399.js"></script>
     <script src="assets/js/main.js"></script>
     <script>
         // View toggle functionality
