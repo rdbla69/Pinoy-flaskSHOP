@@ -48,7 +48,29 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                             mysqli_stmt_bind_param($stmt, "ssss", $username, $full_name, $email, $hashed_password);
                             
                             if (mysqli_stmt_execute($stmt)) {
-                                $success = "Registration successful! You can now login.";
+                                // Generate OTP
+                                $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+                                $otp_expires = date('Y-m-d H:i:s', strtotime('+10 minutes'));
+                                
+                                // Store OTP in database
+                                $sql = "UPDATE users SET otp = ?, otp_expires_at = ? WHERE email = ?";
+                                if ($stmt = mysqli_prepare($conn, $sql)) {
+                                    mysqli_stmt_bind_param($stmt, "sss", $otp, $otp_expires, $email);
+                                    
+                                    if (mysqli_stmt_execute($stmt)) {
+                                        // Send OTP email
+                                        if (sendOTPEmail($email, $otp)) {
+                                            $_SESSION['verify_email'] = $email;
+                                            $_SESSION['otp_expires'] = strtotime($otp_expires);
+                                            header("Location: verify-otp.php");
+                                            exit();
+                                        } else {
+                                            $error = "Registration successful but failed to send verification code. Please try logging in to resend the code.";
+                                        }
+                                    } else {
+                                        $error = "Something went wrong. Please try again later.";
+                                    }
+                                }
                             } else {
                                 $error = "Something went wrong. Please try again later.";
                             }

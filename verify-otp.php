@@ -216,70 +216,69 @@ if (!isset($_SESSION['otp_expires'])) {
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Auto-focus next input when a digit is entered
-        document.querySelectorAll('.otp-input').forEach((input, index) => {
+        // OTP Input Handling
+        const otpInputs = document.querySelectorAll('.otp-input');
+        
+        otpInputs.forEach((input, index) => {
+            // Handle input
             input.addEventListener('input', function() {
                 if (this.value.length === 1) {
-                    if (index < 5) {
-                        this.nextElementSibling.focus();
+                    if (index < otpInputs.length - 1) {
+                        otpInputs[index + 1].focus();
                     }
                 }
             });
             
+            // Handle backspace
             input.addEventListener('keydown', function(e) {
                 if (e.key === 'Backspace' && !this.value && index > 0) {
-                    this.previousElementSibling.focus();
+                    otpInputs[index - 1].focus();
+                }
+            });
+            
+            // Handle paste
+            input.addEventListener('paste', function(e) {
+                e.preventDefault();
+                const pastedData = e.clipboardData.getData('text').slice(0, 6);
+                if (/^\d+$/.test(pastedData)) {
+                    pastedData.split('').forEach((digit, i) => {
+                        if (otpInputs[i]) {
+                            otpInputs[i].value = digit;
+                        }
+                    });
+                    if (otpInputs[pastedData.length]) {
+                        otpInputs[pastedData.length].focus();
+                    }
                 }
             });
         });
-        
-        // Handle verification form submission
-        document.getElementById('verifyForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const otpInputs = document.querySelectorAll('.otp-input');
-            const otp = Array.from(otpInputs).map(input => input.value).join('');
-            
-            // Create hidden input for combined OTP
-            const hiddenInput = document.createElement('input');
-            hiddenInput.type = 'hidden';
-            hiddenInput.name = 'otp';
-            hiddenInput.value = otp;
-            
-            this.appendChild(hiddenInput);
-            this.submit();
-        });
 
-        // Countdown timer
+        // Countdown Timer
+        <?php if (isset($_SESSION['otp_expires'])): ?>
+        const expiryTime = <?php echo $_SESSION['otp_expires']; ?> * 1000;
+        const countdownElement = document.getElementById('countdown');
+        const resendButton = document.getElementById('resendBtn');
+        
         function updateCountdown() {
-            const countdownElement = document.getElementById('countdown');
-            const resendButton = document.getElementById('resendBtn');
-            const expirationTime = <?php echo $_SESSION['otp_expires'] ?? 0; ?> * 1000; // Convert to milliseconds
+            const now = new Date().getTime();
+            const timeLeft = expiryTime - now;
             
-            function update() {
-                const now = new Date().getTime();
-                const distance = expirationTime - now;
-                
-                if (distance <= 0) {
-                    countdownElement.innerHTML = "Code has expired. Please request a new one.";
-                    resendButton.disabled = false;
-                    return;
-                }
-                
-                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-                
-                countdownElement.innerHTML = `Code expires in: ${minutes}:${seconds.toString().padStart(2, '0')}`;
-                resendButton.disabled = true;
-                
-                setTimeout(update, 1000);
+            if (timeLeft <= 0) {
+                countdownElement.innerHTML = "Code expired";
+                resendButton.disabled = false;
+                return;
             }
             
-            update();
+            const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+            
+            countdownElement.innerHTML = `Code expires in: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+            resendButton.disabled = true;
+            
+            setTimeout(updateCountdown, 1000);
         }
-
-        // Start countdown if not on success page
-        <?php if (!$success || !$show_login): ?>
-            updateCountdown();
+        
+        updateCountdown();
         <?php endif; ?>
     </script>
 </body>
